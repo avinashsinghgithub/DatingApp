@@ -13,20 +13,20 @@ import { AlertifyService } from 'src/app/_services/alertify.service';
 export class PhotoEditorComponent implements OnInit {
 
   @Input() photos: Photo [];
-  @Output() getMemberPhotoChange = new EventEmitter<string>();
-  uploader:FileUploader;
-  hasBaseDropZoneOver:boolean;
-  response:string;
-  baseUrl=environment.apiUrl;
+  //@Output() getMemberPhotoChange = new EventEmitter<string>();
+  uploader: FileUploader;
+  hasBaseDropZoneOver: boolean;
+  response: string;
+  baseUrl = environment.apiUrl;
   currentMain: Photo;
 
   constructor(private authService: AuthService, private userService: UserService,
-    private alertify: AlertifyService) { }
+              private alertify: AlertifyService) { }
 
   ngOnInit() {
     this.intializeUploader();
   }
-  public fileOverBase(e:any):void {
+  public fileOverBase(e: any): void {
     this.hasBaseDropZoneOver = e;
   }
  intializeUploader(){
@@ -43,16 +43,23 @@ export class PhotoEditorComponent implements OnInit {
    this.uploader.onAfterAddingFile = (file) => {file.withCredentials = false;};
 
    this.uploader.onSuccessItem = (item, response, status, headers) => {
-     const res: Photo = JSON.parse(response);
-     const photo = {
-       id: res.id,
-       url: res.url,
-       dateAdded: res.dateAdded,
-       description: res.description,
-       isMain: res.isMain
-     };
-
-     this.photos.push(photo);
+    if(response) {
+      const res: Photo = JSON.parse(response);
+      const photo = {
+        id: res.id,
+        url: res.url,
+        dateAdded: res.dateAdded,
+        description: res.description,
+        isMain: res.isMain
+      };
+      this.photos.push(photo);
+      if (res.isMain) {
+        //this.getMemberPhotoChange.emit(photo.url);
+        this.authService.changeMemberPhoto(photo.url);
+        this.authService.currentUser.photoUrl = photo.url;
+        localStorage.setItem('user', JSON.stringify(this.authService.currentUser));
+      }
+    }
    };
  }
 
@@ -61,7 +68,10 @@ export class PhotoEditorComponent implements OnInit {
     this.currentMain = this.photos.filter( p => p.isMain == true)[0];
     this.currentMain.isMain = false;
     photo.isMain = true;
-    this.getMemberPhotoChange.emit(photo.url);
+    //this.getMemberPhotoChange.emit(photo.url);
+    this.authService.changeMemberPhoto(photo.url);
+    this.authService.currentUser.photoUrl = photo.url;
+    localStorage.setItem('user', JSON.stringify(this.authService.currentUser));
   }, error => {
     this.alertify.error(error);
   });
